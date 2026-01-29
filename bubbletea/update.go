@@ -68,23 +68,26 @@ func (m Model) updateMenuView(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.notification += fmt.Sprintf("Received unexpected status code: %d", msg)
 		}
-	case analyze.SuccessMsg:
-		m.notification = "✉️ notifications: "
-		m.notification += fmt.Sprintf("%s \n check full results at view from cache ", string(msg))
+
 	case analyze.AResponse:
 		if msg.Typeofres == "fromcache" {
 			m.notification = "✉️ notifications: "
-			m.notification += fmt.Sprintf("Cached analysis found for %s. Grade: %s", msg.Report.Host, msg.Report.Endpoints[0].Grade)
-			m.report = msg.Report
+			m.notification += fmt.Sprintf("Cached analysis found for %s. Grade: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
+			m.reports[msg.Report.Host] = msg.Report
 		}
 		if msg.Typeofres == "newanalysis" {
 			m.notification = "✉️ notifications: "
-			m.notification += fmt.Sprintf("New analysis started for %s. You will be notified when it's complete.", msg.Report.Host)
-			m.report = msg.Report
+			m.notification += fmt.Sprintf("New analysis started for %s. You will be notified when it's complete. \n", msg.Report.Host)
+			m.reports[msg.Report.Host] = msg.Report
 
 		}
+		if msg.Typeofres == "fromnewanalysis" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("The new Analysis for %s is complete. Grades: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
+			m.reports[msg.Report.Host] = msg.Report
+		}
 		if msg.Typeofres == "waiting for completion" {
-			m.notification += "\n analysis is still in progress, wait for the notification."
+			m.notification += "\n analysis is still in progress, wait for the notification. \n"
 		}
 	case analyze.ErrMsg:
 		m.notification = "✉️ notifications: "
@@ -131,20 +134,13 @@ func (m Model) updateListView(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			domain := m.textInput.Value()
 			if domain != "" {
-				if m.configs.startNew == "off" {
-					m.notification += fmt.Sprintf("lokking for cached analysis for %s", domain)
-					cmd2 := analyze.CheckSomeUrl(m.configs.maxAge, domain, m.configs.ispublic, m.configs.startNew, m.configs.allopc)
-					m.textInput.SetValue("")
-					m.currentView = menuView
-					return m, tea.Batch(cmd, cmd2)
+				if report, ok := m.reports[domain]; ok {
+					m.stringreport = analyze.Viewfullreport(report)
 				} else {
-					// nueva consulta
-					m.notification += fmt.Sprintf("Started a new analysis for %s", domain)
-					cmd2 := analyze.CheckSomeUrl(m.configs.maxAge, domain, m.configs.ispublic, m.configs.startNew, m.configs.allopc)
-					m.textInput.SetValue("")
-					m.currentView = menuView
-					return m, tea.Batch(cmd, cmd2)
+					m.notification += fmt.Sprintf("\nNo analysis found for %s. Please analyze it first.\n", domain)
 				}
+				m.textInput.SetValue("")
+				return m, cmd
 
 			} else {
 				m.notification += "Please enter a valid domain."

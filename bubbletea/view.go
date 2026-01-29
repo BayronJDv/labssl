@@ -7,7 +7,7 @@ import (
 )
 
 func (m Model) View() string {
-	aid := "press esc to go back   -    press q to quit\n"
+	aid := "press esc to go back   -    press ctrl + q to quit\n"
 	switch m.currentView {
 	case menuView:
 		return m.viewMenu() + m.notification + "\n" + aid
@@ -52,9 +52,11 @@ func (m Model) viewInput() string {
 func (m Model) viewList() string {
 	return fmt.Sprintf(
 		"%s\n\n%s\n\n%s",
-		"Enter a domain to analyze:",
+		"Enter a domain to see a full report:",
 		m.textInput.View(),
-		m.notification,
+		"current report for the analyzed domain:\n"+
+			m.stringreport+"\n"+
+			m.notification,
 	)
 }
 
@@ -78,8 +80,8 @@ func (m Model) viewHelp() string {
 
 	s += "1. Analyze a domain: Enter a domain to analyze its SSL/TLS configuration.\n"
 	s += "   depending the config it will start a new analysis or use cached results.\n"
-	s += "2. View details: View the last analysis .\n"
-	s += "   you can keep these results pressing k in this menu.\n"
+	s += "2. View details: View the details from the analysis youve launched .\n"
+	s += "   it shows the analysis in memory \n"
 	s += "3. Config: Configure application settings.\n"
 	s += "you can change this options :\n"
 	s += "   - startsNew: if on it will force a new analysis even if there are cached results.\n"

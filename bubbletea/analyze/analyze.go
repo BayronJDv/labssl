@@ -14,21 +14,35 @@ const baseUrl = "https://api.ssllabs.com/api/v2/analyze"
 
 type StatusMsg int
 type SuccessMsg string
-
 type ErrMsg struct {
 	Err error
 }
 
 // estructura de la resuesta esperada de la API de SSLLabs
 type SSLLabsResponse struct {
-	Host          string     `json:"host"`
-	Status        string     `json:"status"`
-	StatusMessage string     `json:"statusMessage"`
-	Endpoints     []Endpoint `json:"endpoints"`
+	Host            string     `json:"host"`
+	Port            int        `json:"port"`
+	Protocol        string     `json:"protocol"`
+	IsPublic        bool       `json:"isPublic"`
+	Status          string     `json:"status"`
+	StartTime       int64      `json:"startTime"`
+	TestTime        int64      `json:"testTime"`
+	EngineVersion   string     `json:"engineVersion"`
+	CriteriaVersion string     `json:"criteriaVersion"`
+	Endpoints       []Endpoint `json:"endpoints"`
 }
 
 type Endpoint struct {
-	Grade string `json:"grade"`
+	IpAddress         string `json:"ipAddress"`
+	StatusMessage     string `json:"statusMessage"`
+	Grade             string `json:"grade"`
+	GradeTrustIgnored string `json:"gradeTrustIgnored"`
+	HasWarnings       bool   `json:"hasWarnings"`
+	IsExceptional     bool   `json:"isExceptional"`
+	Progress          int    `json:"progress"`
+	Duration          int    `json:"duration"`
+	Eta               int    `json:"eta"`
+	Delegation        int    `json:"delegation"`
 }
 
 type AResponse struct {
@@ -38,7 +52,7 @@ type AResponse struct {
 
 func CheckSomeUrl(maxAge int, url, publish, stratnew, allopc string) tea.Cmd {
 	maxAgeStr := fmt.Sprintf("%d", maxAge)
-	fullUrl := baseUrl + "?host=" + url + "&publish=" + publish + "&startNew=" + stratnew +"&maxAge="+ maxAgeStr + "&all=" + allopc + "&ignoreMismatch=on"
+	fullUrl := baseUrl + "?host=" + url + "&publish=" + publish + "&startNew=" + stratnew + "&maxAge=" + maxAgeStr + "&all=" + allopc + "&ignoreMismatch=on"
 	urlCheck := baseUrl + "?host=" + url + "&fromCache=on" + "&publish=" + publish + "&all=" + allopc + "&ignoreMismatch=on"
 	return func() tea.Msg {
 		c := &http.Client{Timeout: 10 * time.Second}
@@ -81,17 +95,14 @@ func CheckSomeUrl(maxAge int, url, publish, stratnew, allopc string) tea.Cmd {
 					return ErrMsg{err}
 				}
 				if sslResp.Status == "READY" {
-					return SuccessMsg("the new Analysis for " + url + " is complete. Grade: " + sslResp.Endpoints[0].Grade)
-				} else {
 					return AResponse{
-						Typeofres: "waiting for completion",
+						Typeofres: "fromnewanalysis",
+						Report:    sslResp,
 					}
 				}
-
+				// El bucle continúa si Status != "READY"
 			}
-
 		}
 
 	}
 }
-

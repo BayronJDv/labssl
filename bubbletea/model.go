@@ -1,9 +1,9 @@
 package bubbletea
 
 import (
+	"github.com/BayronJDv/labssl/bubbletea/analyze"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-    "github.com/BayronJDv/labssl/bubbletea/analyze"
 )
 
 // Constantes para identificar las vistas
@@ -31,7 +31,8 @@ type Model struct {
 	textInput    textinput.Model
 	notification string
 	configs      configs
-	report       analyze.SSLLabsResponse
+	reports      map[string]analyze.SSLLabsResponse
+	stringreport string
 }
 
 // InitialModel crea el estado inicial
@@ -53,6 +54,7 @@ func InitialModel() Model {
 			ispublic: "off",
 			allopc:   "done",
 		},
+		reports: make(map[string]analyze.SSLLabsResponse),
 	}
 }
 
