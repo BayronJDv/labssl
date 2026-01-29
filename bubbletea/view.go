@@ -10,15 +10,15 @@ func (m Model) View() string {
 	aid := "press esc to go back   -    press ctrl + q to quit\n"
 	switch m.currentView {
 	case menuView:
-		return m.viewMenu() + m.notification + "\n" + aid
+		return m.viewMenu() + "\n" + m.notification + "\n" + aid
 	case inputView:
-		return m.viewInput() + aid
+		return m.viewInput() + "\n" + m.notification + "\n" + aid
 	case listView:
-		return m.viewList() + aid
+		return m.viewList() + "\n" + m.notification + "\n" + aid
 	case configView:
-		return m.viewConfig() + aid
+		return m.viewConfig() + "\n" + m.notification + "\n" + aid
 	case helpView:
-		return m.viewHelp() + aid
+		return m.viewHelp() + "\n" + m.notification + "\n" + aid
 	default:
 		return "Unknown view"
 	}
@@ -42,10 +42,9 @@ func (m Model) viewMenu() string {
 
 func (m Model) viewInput() string {
 	return fmt.Sprintf(
-		"%s\n\n%s\n\n%s",
+		"%s\n\n%s\n",
 		"Enter a domain to analyze:",
 		m.textInput.View(),
-		m.notification,
 	)
 }
 
@@ -55,8 +54,7 @@ func (m Model) viewList() string {
 		"Enter a domain to see a full report:",
 		m.textInput.View(),
 		"current report for the analyzed domain:\n"+
-			m.stringreport+"\n"+
-			m.notification,
+			m.stringreport+"\n",
 	)
 }
 

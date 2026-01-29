@@ -16,6 +16,39 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
+
+	// Procesar mensajes de notificación independientemente de la vista actual
+	switch msg := msg.(type) {
+	case analyze.StatusMsg:
+		if msg == 200 {
+			m.notification += "\n an analysis has been started, wait for the notification, then go to 'View Results' to see it."
+		} else {
+			m.notification += fmt.Sprintf("Received unexpected status code: %d", msg)
+		}
+	case analyze.AResponse:
+		if msg.Typeofres == "fromcache" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("Cached analysis found for %s. Grade: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
+			m.reports[msg.Report.Host] = msg.Report
+		}
+		if msg.Typeofres == "newanalysis" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("New analysis started for %s. You will be notified when it's complete. \n", msg.Report.Host)
+			m.reports[msg.Report.Host] = msg.Report
+		}
+		if msg.Typeofres == "fromnewanalysis" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("The new Analysis for %s is complete. Grades: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
+			m.reports[msg.Report.Host] = msg.Report
+		}
+		if msg.Typeofres == "waiting for completion" {
+			m.notification += "\n analysis is still in progress, wait for the notification. \n"
+		}
+	case analyze.ErrMsg:
+		m.notification = "✉️ notifications: "
+		m.notification += fmt.Sprintf("Error: %s", msg.Err)
+	}
+
 	switch m.currentView {
 	case menuView:
 		return m.updateMenuView(msg)
@@ -61,37 +94,6 @@ func (m Model) updateMenuView(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.currentView = helpView
 			}
 		}
-
-	case analyze.StatusMsg:
-		if msg == 200 {
-			m.notification += "\n an analysis has been started, wait for the notification, then go to 'View Results' to see it."
-		} else {
-			m.notification += fmt.Sprintf("Received unexpected status code: %d", msg)
-		}
-
-	case analyze.AResponse:
-		if msg.Typeofres == "fromcache" {
-			m.notification = "✉️ notifications: "
-			m.notification += fmt.Sprintf("Cached analysis found for %s. Grade: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
-			m.reports[msg.Report.Host] = msg.Report
-		}
-		if msg.Typeofres == "newanalysis" {
-			m.notification = "✉️ notifications: "
-			m.notification += fmt.Sprintf("New analysis started for %s. You will be notified when it's complete. \n", msg.Report.Host)
-			m.reports[msg.Report.Host] = msg.Report
-
-		}
-		if msg.Typeofres == "fromnewanalysis" {
-			m.notification = "✉️ notifications: "
-			m.notification += fmt.Sprintf("The new Analysis for %s is complete. Grades: %s \n", msg.Report.Host, analyze.Resumegrades(msg.Report))
-			m.reports[msg.Report.Host] = msg.Report
-		}
-		if msg.Typeofres == "waiting for completion" {
-			m.notification += "\n analysis is still in progress, wait for the notification. \n"
-		}
-	case analyze.ErrMsg:
-		m.notification = "✉️ notifications: "
-		m.notification += fmt.Sprintf("Error: %s", msg.Err)
 	}
 
 	return m, cmd
