@@ -3,7 +3,7 @@ package bubbletea
 import (
 	"fmt"
 
-	"github.com/BayronJDv/labssl/analyze"
+	"github.com/BayronJDv/labssl/bubbletea/analyze"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -12,7 +12,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	if km, ok := msg.(tea.KeyMsg); ok {
 		switch km.String() {
-		case "q":
+		case "ctrl+q":
 			return m, tea.Quit
 		}
 	}
@@ -69,11 +69,28 @@ func (m Model) updateMenuView(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.notification += fmt.Sprintf("Received unexpected status code: %d", msg)
 		}
 	case analyze.SuccessMsg:
-		m.isloading = false
 		m.notification = "✉️ notifications: "
 		m.notification += fmt.Sprintf("%s \n check full results at view from cache ", string(msg))
+	case analyze.AResponse:
+		if msg.Typeofres == "fromcache" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("Cached analysis found for %s. Grade: %s", msg.Report.Host, msg.Report.Endpoints[0].Grade)
+			m.report = msg.Report
+		}
+		if msg.Typeofres == "newanalysis" {
+			m.notification = "✉️ notifications: "
+			m.notification += fmt.Sprintf("New analysis started for %s. You will be notified when it's complete.", msg.Report.Host)
+			m.report = msg.Report
 
+		}
+		if msg.Typeofres == "waiting for completion" {
+			m.notification += "\n analysis is still in progress, wait for the notification."
+		}
+	case analyze.ErrMsg:
+		m.notification = "✉️ notifications: "
+		m.notification += fmt.Sprintf("Error: %s", msg.Err)
 	}
+
 	return m, cmd
 
 }
@@ -88,7 +105,6 @@ func (m Model) updateInputView(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			domain := m.textInput.Value()
 			if domain != "" {
-				m.isloading = true
 				m.notification += fmt.Sprintf("Started analysis for %s", domain)
 				cmd2 := analyze.CheckSomeUrl(m.configs.maxAge, domain, m.configs.ispublic, m.configs.startNew, m.configs.allopc)
 				m.textInput.SetValue("")
@@ -115,12 +131,21 @@ func (m Model) updateListView(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			domain := m.textInput.Value()
 			if domain != "" {
-				m.isloading = true
-				m.notification += fmt.Sprintf("lokking for cached analysis for %s", domain)
-				cmd2 := analyze.Checkfromcache(domain)
-				m.textInput.SetValue("")
-				m.currentView = menuView
-				return m, tea.Batch(cmd, cmd2)
+				if m.configs.startNew == "off" {
+					m.notification += fmt.Sprintf("lokking for cached analysis for %s", domain)
+					cmd2 := analyze.CheckSomeUrl(m.configs.maxAge, domain, m.configs.ispublic, m.configs.startNew, m.configs.allopc)
+					m.textInput.SetValue("")
+					m.currentView = menuView
+					return m, tea.Batch(cmd, cmd2)
+				} else {
+					// nueva consulta
+					m.notification += fmt.Sprintf("Started a new analysis for %s", domain)
+					cmd2 := analyze.CheckSomeUrl(m.configs.maxAge, domain, m.configs.ispublic, m.configs.startNew, m.configs.allopc)
+					m.textInput.SetValue("")
+					m.currentView = menuView
+					return m, tea.Batch(cmd, cmd2)
+				}
+
 			} else {
 				m.notification += "Please enter a valid domain."
 			}
@@ -160,6 +185,12 @@ func (m Model) updateConfigView(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.configs.allopc = "done"
 			default:
 				m.configs.allopc = "on"
+			}
+		case "n":
+			if m.configs.startNew == "on" {
+				m.configs.startNew = "off"
+			} else {
+				m.configs.startNew = "on"
 			}
 		}
 	}

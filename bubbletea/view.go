@@ -10,9 +10,6 @@ func (m Model) View() string {
 	aid := "press esc to go back   -    press q to quit\n"
 	switch m.currentView {
 	case menuView:
-		if m.isloading {
-			aid = "press esc to go back   -    press q to quit   -   "
-		}
 		return m.viewMenu() + m.notification + "\n" + aid
 	case inputView:
 		return m.viewInput() + aid
@@ -29,7 +26,7 @@ func (m Model) View() string {
 
 func (m Model) viewMenu() string {
 	// Usamos style.Purple en lugar de la constante local
-	s := "welcome to labssl\n\n"
+	s := style.Purple + style.Bold + "welcome to labssl\n\n" + style.Reset
 	s += "it allows you to analyze SSL/TLS configurations of domains using the SSLLabs API.\n"
 	s += "Navigate using the arrow keys and press enter to select an option.\n"
 	s += style.Purple + style.Bold + "Select an option:" + style.Reset + "\n\n"
@@ -65,8 +62,9 @@ func (m Model) viewConfig() string {
 
 	s := style.Purple + style.Bold + "Configuration settings\n" + style.Reset
 	s += "visit help section if you need more information.\n\n"
+	s += fmt.Sprintf("StartNew: %s   press n to change it\n", m.configs.startNew)
 	s += fmt.Sprintf("Max Age: %d   use up/down arrows to change it\n", m.configs.maxAge)
-	s += fmt.Sprintf("Is Public: %s   use right arrow to change it \n"  , m.configs.ispublic)
+	s += fmt.Sprintf("Is Public: %s   use right arrow to change it \n", m.configs.ispublic)
 	s += fmt.Sprintf("Allow OPC: %s  use left arrow to change it\n", m.configs.allopc)
 	s += "\n"
 	return s
